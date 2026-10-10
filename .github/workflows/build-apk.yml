@@ -1,0 +1,53 @@
+name: Build Dart Simple Live APK
+on:
+  workflow_dispatch: #手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      PUB_HOSTED_URL: https://pub.flutter-io.cn
+      FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Setup Flutter 3.47.7
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+
+      - name: Accept Android SDK licenses
+        run: yes | flutter doctor --android-licenses
+
+      # 编译手机版 simple_live_app，增加跳过Gradle校验参数
+      - name: Build simple_live_app (Mobile APK)
+        working-directory: ./simple_live_app
+        run: |
+          flutter pub get
+          flutter build apk --release --android-skip-build-dependency-validation
+
+      # 编译TV版 simple_live_tv_app
+      - name: Build simple_live_tv_app (TV APK)
+        working-directory: ./simple_live_tv_app
+        run: |
+          flutter pub get
+          flutter build apk --release --android-skip-build-dependency-validation
+
+      # 上传成品APK
+      - name: Upload Mobile APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple_live_app-apk
+          path: simple_live_app/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload TV APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple_live_tv_app-apk
+          path: simple_live_tv_app/build/app/outputs/flutter-apk/app-release.apk
